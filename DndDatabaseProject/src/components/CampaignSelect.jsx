@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import {
   collection,
@@ -13,6 +14,8 @@ import './CampaignSelect.css';
 export default function CampaignSelect({ onSelectCampaign }) {
   const [campaigns, setCampaigns] = useState([]);
   const [newName, setNewName] = useState('');
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
 
   useEffect(() => {
     getDocs(collection(db, 'campaigns'))
@@ -30,6 +33,12 @@ export default function CampaignSelect({ onSelectCampaign }) {
     setNewName('');
   };
 
+  const handleRename = async (id, newName) =>
+  {
+    await updateDoc(doc(db,'campaigns', id), { name: newName.trim() });
+    setCampaigns(prev => prev.map(c => c.id === id ? { ...c, name: newName.trim() } : c));
+  }
+
   const handleDelete = async (id) => {
     await deleteDoc(doc(db, 'campaigns', id));
     setCampaigns(prev => prev.filter(c => c.id !== id));
@@ -44,12 +53,25 @@ export default function CampaignSelect({ onSelectCampaign }) {
       <ul className="list">
         {campaigns.map(c => (
           <li key={c.id} className="item">
-            <span>{c.name}</span>
-            <div className="item-buttons">
-              <button onClick={() => onSelectCampaign(c)}>Open</button>
-              <button onClick={() => handleDelete(c.id)}>Delete</button>
-            </div>
-          </li>
+  {renamingId === c.id ? (
+    <input
+      value={renameValue}
+      onChange={e => setRenameValue(e.target.value)}
+      onKeyDown={e => {
+        if (e.key === 'Enter') { handleRename(c.id, renameValue); setRenamingId(null); }
+        if (e.key === 'Escape') setRenamingId(null);
+      }}
+      autoFocus
+    />
+  ) : (
+        <span>{c.name}</span>
+  )}
+    <div className="item-buttons">
+        <button onClick={() => onSelectCampaign(c)}>Open</button>
+        <button onClick={() => { setRenamingId(c.id); setRenameValue(c.name); }}>Rename</button>
+        <button onClick={() => handleDelete(c.id)}>Delete</button>
+    </div>
+    </li>
         ))}
       </ul>
 

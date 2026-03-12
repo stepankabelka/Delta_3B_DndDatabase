@@ -1,0 +1,83 @@
+.view {
+  display: flex;
+  height: 100vh;
+  font-family: sans-serif;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  border-right: 1px solid #ddd;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.back-btn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #555;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+.campaign-name {
+  font-size: 1.1rem;
+  margin: 0;
+  word-break: break-word;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.nav-btn {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 1rem;
+}
+
+.nav-btn--active {
+  background: #f0f0f0;
+  font-weight: bold;
+  color: #555;
+}
+
+/* ── Main content ── */
+.content {
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.content h1 {
+  margin-top: 0;
+}
+
+.map-placeholder {
+  width: 100%;
+  height: 500px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #aaa;
+  margin-top: 1rem;
+}
+
+.placeholder-text {
+  color: #888;
+  margin-top: 1rem;
+}

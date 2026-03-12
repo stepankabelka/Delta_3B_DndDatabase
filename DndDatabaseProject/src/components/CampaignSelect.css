@@ -30,6 +30,7 @@
 .item-buttons {
   display: flex;
   gap: 0.4rem;
+  margin-left: 20px;
 }
 
 .form {
