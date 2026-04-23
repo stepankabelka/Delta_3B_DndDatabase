@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
+import { useRef } from "react";
+
 import {
   collection,
   getDocs,
@@ -11,6 +13,28 @@ import {
 } from 'firebase/firestore';
 import './CampaignSelect.css';
 
+function GoogleLogin() {
+  const buttonRef = useRef(null);
+
+  useEffect(() => {
+    if (!window.google || !buttonRef.current) return;
+
+    window.google.accounts.id.initialize({
+      client_id: "795566622579-6nfmqf19f807pombkbffjufsbjl251ig.apps.googleusercontent.com",
+      callback: (response) => {
+        console.log(response.credential);
+      }
+    });
+
+    window.google.accounts.id.renderButton(buttonRef.current, {
+      theme: "outline",
+      size: "large"
+    });
+
+  }, []);
+
+  return <div ref={buttonRef}></div>;
+}
 export default function CampaignSelect({ onSelectCampaign }) {
   const [campaigns, setCampaigns] = useState([]);
   const [newName, setNewName] = useState('');
@@ -44,9 +68,14 @@ export default function CampaignSelect({ onSelectCampaign }) {
     setCampaigns(prev => prev.filter(c => c.id !== id));
   };
 
+
   return (
     <div className="page">
+        <div className="google-login-container">
+            <GoogleLogin />
+        </div>
       <h1>My Campaigns</h1>
+      
 
       {campaigns.length === 0 && <p className="empty">No campaigns yet.</p>}
 
@@ -86,3 +115,4 @@ export default function CampaignSelect({ onSelectCampaign }) {
     </div>
   );
 }
+

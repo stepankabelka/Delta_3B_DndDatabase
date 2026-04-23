@@ -51,7 +51,6 @@
 .nav-btn--active {
   background: #f0f0f0;
   font-weight: bold;
-  color: #555;
 }
 
 /* ── Main content ── */
@@ -59,6 +58,8 @@
   flex: 1;
   padding: 2rem;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .content h1 {
@@ -80,4 +81,51 @@
 .placeholder-text {
   color: #888;
   margin-top: 1rem;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.item {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* ── Script ── */
+.script-textarea {
+  width: 100%;
+  flex: 1;
+  min-height: 400px;
+  padding: 0.75rem;
+  font-family: sans-serif;
+  font-size: 0.95rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.script-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.unsaved {
+  color: #888;
+  font-size: 0.85rem;
 }

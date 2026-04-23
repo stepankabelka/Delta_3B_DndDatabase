@@ -32,10 +32,10 @@ export default function CampaignView({ campaign, onBack }) {
       </aside>
 
       <main className="content">
-        {activeSection === 'Map'    && <MapSection />}
+        {activeSection === 'Map'    && <MapSection campaign={campaign}/>}
         {activeSection === 'NPC'    && <NpcSection campaign={campaign} />}
-        {activeSection === 'World'  && <WorldSection />}
-        {activeSection === 'Script' && <ScriptSection />}
+        {activeSection === 'World'  && <WorldSection campaign={campaign}/>}
+        {activeSection === 'Script' && <ScriptSection campaign={campaign} />}
       </main>
     </div>
   );
@@ -112,12 +112,40 @@ function WorldSection() {
   );
 }
 
-function ScriptSection() {
+function ScriptSection({ campaign }) {
+  const [text, setText] = useState('');
+  const [saved, setSaved] = useState(true);
+ 
+  useEffect(() => {
+    getDocs(doc(db, 'campaigns', campaign.id, 'data', 'script'))
+      .then(snapshot => {
+        if (snapshot.exists()) {
+          setText(snapshot.data().text);
+        }
+      });
+  }, [campaign.id]);
+ 
+  const handleSave = async () => {
+    await setDoc(doc(db, 'campaigns', campaign.id, 'data', 'script'), {
+      text,
+      updatedAt: serverTimestamp(),
+    });
+    setSaved(true);
+  };
+ 
   return (
     <div>
       <h1>Script & Notes</h1>
-      <button>Edit</button>
-      <p className="placeholder-text">No notes yet.</p>
+      <textarea
+        className="script-textarea"
+        value={text}
+        onChange={e => { setText(e.target.value); setSaved(false); }}
+        placeholder="Write your script and notes here…"
+      />
+      <div className="script-footer">
+        {!saved && <span className="unsaved">Unsaved changes</span>}
+        <button onClick={handleSave}>Save</button>
+      </div>
     </div>
   );
 }
