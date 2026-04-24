@@ -41,7 +41,48 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 20px;
-  background-color: red;
-  position: absolute;
+  margin-bottom: 1.5rem;
+}
+
+.google-login-container button {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 1.2rem;
+  background-color: #fff;
+  color: #3c4043;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    box-shadow 0.2s;
+  width: 100%;
+}
+
+.google-login-container button:hover {
+  background-color: #f8f9fa;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  border-color: #c6c6c6;
+}
+.topbar {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.topbar img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.topbar span {
+  font-size: 0.9rem;
 }

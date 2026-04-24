@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react';
 import { updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useRef } from "react";
+import { signInWithPopup, signOut } from "firebase/auth";
 
+import { auth, googleProvider } from "../firebase";
+import './CampaignSelect.css';
 import {
   collection,
   getDocs,
@@ -11,31 +14,37 @@ import {
   doc,
   serverTimestamp,
 } from 'firebase/firestore';
-import './CampaignSelect.css';
 
 function GoogleLogin() {
-  const buttonRef = useRef(null);
+  const handleLogin = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+      
+    } catch (err) {
+      console.error("Login failed:", err);
+    }
+  };
+    
+  
+  return (
 
-  useEffect(() => {
-    if (!window.google || !buttonRef.current) return;
-
-    window.google.accounts.id.initialize({
-      client_id: "795566622579-6nfmqf19f807pombkbffjufsbjl251ig.apps.googleusercontent.com",
-      callback: (response) => {
-        console.log(response.credential);
-      }
-    });
-
-    window.google.accounts.id.renderButton(buttonRef.current, {
-      theme: "outline",
-      size: "large"
-    });
-
-  }, []);
-
-  return <div ref={buttonRef}></div>;
+    <button onClick={handleLogin}>Sign in with Google</button>
+  );
 }
-export default function CampaignSelect({ onSelectCampaign }) {
+ function GoogleLogout(){
+    const handleLogout = async () => {
+        try{
+        await signOut(auth);
+        }
+        catch(err){
+            console.error("Logout failed: ", err)
+        }
+    };
+    return(
+    <button onClick={handleLogout}>Sign out with Google</button>
+    );
+ }
+export default function CampaignSelect({ user, onSelectCampaign }) {
   const [campaigns, setCampaigns] = useState([]);
   const [newName, setNewName] = useState('');
   const [renamingId, setRenamingId] = useState(null);
@@ -67,12 +76,28 @@ export default function CampaignSelect({ onSelectCampaign }) {
     await deleteDoc(doc(db, 'campaigns', id));
     setCampaigns(prev => prev.filter(c => c.id !== id));
   };
-
+ const handleProfile = async() => {
+    try {
+            <img src={user.photoURL} alt="profile" />,
+            <span>{user.displayName}</span>
+        } catch (err) {
+            console("Nepřihlášen")
+        }
+ }
 
   return (
     <div className="page">
+        {user && (
+        <div className="topbar">
+         <span>{user.displayName}</span>
+         </div>
+        )}
+        <div></div>
         <div className="google-login-container">
-            <GoogleLogin />
+            <GoogleLogin/>
+        </div>
+        <div className="google-login-container">
+            <GoogleLogout/>
         </div>
       <h1>My Campaigns</h1>
       
