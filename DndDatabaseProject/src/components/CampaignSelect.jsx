@@ -3,7 +3,6 @@ import { updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useRef } from "react";
 import { signInWithPopup, signOut } from "firebase/auth";
-
 import { auth, googleProvider } from "../firebase";
 import './CampaignSelect.css';
 import {
@@ -90,6 +89,7 @@ export default function CampaignSelect({ user, onSelectCampaign }) {
         {user && (
         <div className="topbar">
          <span>{user.displayName}</span>
+         <img src={user.photoURL} alt="profile" />,
          </div>
         )}
         <div></div>
