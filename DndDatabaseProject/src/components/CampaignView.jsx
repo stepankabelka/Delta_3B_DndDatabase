@@ -5,6 +5,9 @@ import {
   getDocs,
   addDoc,
   serverTimestamp,
+   getDoc,
+  setDoc,
+  doc,
 } from 'firebase/firestore';
 import './CampaignView.css';
 
@@ -117,7 +120,7 @@ function ScriptSection({ campaign }) {
   const [saved, setSaved] = useState(true);
  
   useEffect(() => {
-    getDocs(doc(db, 'campaigns', campaign.id, 'data', 'script'))
+    getDoc(doc(db, 'campaigns', campaign.id, 'data', 'script'))
       .then(snapshot => {
         if (snapshot.exists()) {
           setText(snapshot.data().text);

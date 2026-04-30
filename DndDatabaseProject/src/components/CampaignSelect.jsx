@@ -89,7 +89,7 @@ export default function CampaignSelect({ user, onSelectCampaign }) {
         {user && (
         <div className="topbar">
          <span>{user.displayName}</span>
-         <img src={user.photoURL} alt="profile" />,
+         <img src={user.photoURL} alt="profile"/>
          </div>
         )}
         <div></div>
