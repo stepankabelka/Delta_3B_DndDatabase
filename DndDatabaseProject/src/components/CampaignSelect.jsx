@@ -51,28 +51,28 @@ export default function CampaignSelect({ user, onSelectCampaign }) {
 
   useEffect(() => {
     getDocs(collection(db, 'campaigns'))
-      .then(snapshot => setCampaigns(snapshot.docs.map(d => ({ id: d.id, ...d.data() }))));
+      .then(snapshot => setCampaigns(snapshot.docs.map(d => ({ id: d.id, uid: user.uid, ...d.data() }))));
   }, []);
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!newName.trim()) return;
-    const ref = await addDoc(collection(db, 'campaigns'), {
+    if (!newName.trim() || !user) return;
+    const ref = await addDoc(collection(db,'users', user.uid, 'campaigns'), {
       name: newName.trim(),
       createdAt: serverTimestamp(),
     });
-    setCampaigns(prev => [...prev, { id: ref.id, name: newName.trim() }]);
+    setCampaigns(prev => [...prev, { id: ref.id, name: newName.trim(), uid: user.uid }]);
     setNewName('');
   };
 
   const handleRename = async (id, newName) =>
   {
-    await updateDoc(doc(db,'campaigns', id), { name: newName.trim() });
+    await updateDoc(doc(db,'users', user.uid,'campaigns', id), { name: newName.trim() });
     setCampaigns(prev => prev.map(c => c.id === id ? { ...c, name: newName.trim() } : c));
   }
 
   const handleDelete = async (id) => {
-    await deleteDoc(doc(db, 'campaigns', id));
+    await deleteDoc(doc(db,'users', user.uid, 'campaigns', id));
     setCampaigns(prev => prev.filter(c => c.id !== id));
   };
  const handleProfile = async() => {

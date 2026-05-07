@@ -59,14 +59,14 @@ function NpcSection({ campaign }) {
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
-    getDocs(collection(db, 'campaigns', campaign.id, 'npcs'))
+    getDocs(collection(db, 'users', user.uid, 'campaigns', campaign.id, 'npcs'))
       .then(snapshot => setNpcs(snapshot.docs.map(d => ({ id: d.id, ...d.data() }))));
   }, [campaign.id]);
 
   const handleAdd = async (e) => {
     e.preventDefault();
     if (!newName.trim()) return;
-    const ref = await addDoc(collection(db, 'campaigns', campaign.id, 'npcs'), {
+    const ref = await addDoc(collection(db,'users', user.uid, 'campaigns', campaign.id, 'npcs'), {
       name: newName.trim(),
       createdAt: serverTimestamp(),
     });
@@ -120,7 +120,7 @@ function ScriptSection({ campaign }) {
   const [saved, setSaved] = useState(true);
  
   useEffect(() => {
-    getDoc(doc(db, 'campaigns', campaign.id, 'data', 'script'))
+    getDoc(doc(db,'users', user.uid, 'campaigns', campaign.id, 'data', 'script'))
       .then(snapshot => {
         if (snapshot.exists()) {
           setText(snapshot.data().text);
@@ -129,7 +129,7 @@ function ScriptSection({ campaign }) {
   }, [campaign.id]);
  
   const handleSave = async () => {
-    await setDoc(doc(db, 'campaigns', campaign.id, 'data', 'script'), {
+    await setDoc(doc(db,'users', user.uid, 'campaigns', campaign.id, 'data', 'script'), {
       text,
       updatedAt: serverTimestamp(),
     });
