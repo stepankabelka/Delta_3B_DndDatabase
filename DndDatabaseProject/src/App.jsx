@@ -22,6 +22,7 @@ export default function App() {
       <CampaignView
         campaign={activeCampaign}
         onBack={() => setActiveCampaign(null)}
+        user={user}
       />
     );
   }

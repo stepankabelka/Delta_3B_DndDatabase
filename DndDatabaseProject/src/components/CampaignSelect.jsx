@@ -49,10 +49,11 @@ export default function CampaignSelect({ user, onSelectCampaign }) {
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
 
-  useEffect(() => {
-    getDocs(collection(db, 'campaigns'))
-      .then(snapshot => setCampaigns(snapshot.docs.map(d => ({ id: d.id, uid: user.uid, ...d.data() }))));
-  }, []);
+useEffect(() => {
+  if (!user) { setCampaigns([]); return; }
+  getDocs(collection(db, 'users', user.uid, 'campaigns'))
+    .then(snapshot => setCampaigns(snapshot.docs.map(d => ({ id: d.id, uid: user.uid, ...d.data() }))));
+}, [user]);
 
   const handleCreate = async (e) => {
     e.preventDefault();

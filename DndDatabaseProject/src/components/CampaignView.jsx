@@ -13,7 +13,7 @@ import './CampaignView.css';
 
 const SECTIONS = ['Map', 'NPC', 'World', 'Script'];
 
-export default function CampaignView({ campaign, onBack }) {
+export default function CampaignView({ campaign, onBack, user}) {
   const [activeSection, setActiveSection] = useState('Map');
 
   return (
@@ -35,10 +35,10 @@ export default function CampaignView({ campaign, onBack }) {
       </aside>
 
       <main className="content">
-        {activeSection === 'Map'    && <MapSection campaign={campaign}/>}
-        {activeSection === 'NPC'    && <NpcSection campaign={campaign} />}
-        {activeSection === 'World'  && <WorldSection campaign={campaign}/>}
-        {activeSection === 'Script' && <ScriptSection campaign={campaign} />}
+        {activeSection === 'Map'    && <MapSection campaign={campaign} user={user}/>}
+        {activeSection === 'NPC'    && <NpcSection campaign={campaign} user={user} />}
+        {activeSection === 'World'  && <WorldSection campaign={campaign} user={user}/>}
+        {activeSection === 'Script' && <ScriptSection campaign={campaign} user={user}/>}
       </main>
     </div>
   );
@@ -53,9 +53,14 @@ function MapSection() {
   );
 }
 
-function NpcSection({ campaign }) {
+function NpcSection({ campaign, user }) {
   const [npcs, setNpcs] = useState([]);
   const [newName, setNewName] = useState('');
+  const [newMotiv, setMotiv] = useState("")
+  const [newChar, setChar] = useState("")
+  const [newLook, setLook] = useState("")
+  const [newBackstory, setBackstory] = useState("")
+  const [newTraits, setTraits] = useState("")
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
@@ -68,9 +73,13 @@ function NpcSection({ campaign }) {
     if (!newName.trim()) return;
     const ref = await addDoc(collection(db,'users', user.uid, 'campaigns', campaign.id, 'npcs'), {
       name: newName.trim(),
+      look: newLook(),
+      motivation: newMotiv(),
+      backstory: newBackstory(),
+      traits: newTraits(),
       createdAt: serverTimestamp(),
     });
-    setNpcs(prev => [...prev, { id: ref.id, name: newName.trim() }]);
+    setNpcs(prev => [...prev, { id: ref.id, name: newName.trim(),}]);
     setNewName('');
     setShowForm(false);
   };
@@ -92,7 +101,32 @@ function NpcSection({ campaign }) {
           <input
             value={newName}
             onChange={e => setNewName(e.target.value)}
-            placeholder="NPC name…"
+            placeholder="Name"
+            autoFocus
+          /><input
+            value={newLook}
+            onChange={e => setLook(e.target.value)}
+            placeholder="Look"
+            autoFocus
+          /><input
+            value={newChar}
+            onChange={e => setChar(e.target.value)}
+            placeholder="Character"
+            autoFocus
+          /><input
+            value={newMotiv}
+            onChange={e => setMotiv(e.target.value)}
+            placeholder="Motivation"
+            autoFocus
+          /><input
+            value={newBackstory}
+            onChange={e => setBackstory(e.target.value)}
+            placeholder="Backstory"
+            autoFocus
+          /><input
+            value={newTraits}
+            onChange={e => setTraits(e.target.value)}
+            placeholder="Traits"
             autoFocus
           />
           <button type="submit">Confirm</button>
@@ -115,18 +149,29 @@ function WorldSection() {
   );
 }
 
-function ScriptSection({ campaign }) {
+function ScriptSection({ campaign, user}) {
   const [text, setText] = useState('');
   const [saved, setSaved] = useState(true);
+  const [script, setScripts] = useState([]);
+  const [scriptName, setScriptName] = useState("script");
+
+
+
  
   useEffect(() => {
-    getDoc(doc(db,'users', user.uid, 'campaigns', campaign.id, 'data', 'script'))
+    getDoc(doc(db,'users', user.uid, 'campaigns', campaign.id, 'data'))
       .then(snapshot => {
         if (snapshot.exists()) {
           setText(snapshot.data().text);
         }
       });
   }, [campaign.id]);
+
+    useEffect(() => {
+    getDocs(collection(db, 'users', user.uid, 'campaigns', campaign.id, 'npcs'))
+      .then(snapshot => setNpcs(snapshot.docs.map(d => ({ id: d.id, ...d.data() }))));
+    }, [campaign.id]);
+
  
   const handleSave = async () => {
     await setDoc(doc(db,'users', user.uid, 'campaigns', campaign.id, 'data', 'script'), {
@@ -135,6 +180,22 @@ function ScriptSection({ campaign }) {
     });
     setSaved(true);
   };
+
+//   const handleAdd = async (e) => {
+//   e.preventDefault();
+//   if (!newName.trim()) return;
+//   const ref = await addDoc(collection(db,'users', user.uid, 'campaigns', campaign.id, 'npcs'), {
+//     name: newName.trim(),
+//     createdAt: serverTimestamp(),
+//   });
+//   setNpcs(prev => [...prev, { id: ref.id, name: newName.trim() }]);
+//   setNewName('');
+//   setShowForm(false);
+// };
+
+  const handleAdd = async() =>{
+
+  }
  
   return (
     <div>

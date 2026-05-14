@@ -51,6 +51,7 @@
 .nav-btn--active {
   background: #f0f0f0;
   font-weight: bold;
+  color: black;
 }
 
 /* ── Main content ── */
@@ -105,9 +106,10 @@
 
 /* ── Script ── */
 .script-textarea {
-  width: 100%;
+  display: flex;
   flex: 1;
-  min-height: 400px;
+  width: 60vw;
+  min-height: 100px;
   padding: 0.75rem;
   font-family: sans-serif;
   font-size: 0.95rem;
