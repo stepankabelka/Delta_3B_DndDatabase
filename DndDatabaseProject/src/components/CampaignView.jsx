@@ -1,13 +1,17 @@
-import { useState, useEffect } from 'react';
-import { db } from '../firebase';
+import { useState, useEffect, Popup } from 'react';
+import { db,} from '../firebase';
+import { Description, Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import {
   collection,
+  deleteDoc,
   getDocs,
   addDoc,
   serverTimestamp,
    getDoc,
   setDoc,
+  onSnapshot,
   doc,
+  updateDoc,
 } from 'firebase/firestore';
 import './CampaignView.css';
 
@@ -25,7 +29,7 @@ export default function CampaignView({ campaign, onBack, user}) {
           {SECTIONS.map(section => (
             <button
               key={section}
-              className={`nav-btn ${activeSection === section ? 'nav-btn--active' : ''}`}
+              className={`nav-btn ${activeSection === section ? 'nav-btn--active' : ""}`}
               onClick={() => setActiveSection(section)}
             >
               {section}
@@ -54,87 +58,202 @@ function MapSection() {
 }
 
 function NpcSection({ campaign, user }) {
-  const [npcs, setNpcs] = useState([]);
-  const [newName, setNewName] = useState('');
+  const EMPTY_NPC = { name: "", look: "", motivation: "", backstory: "", traits: "" }
+  const [npcs, setNpcs] = useState([])
+  const [newName, setNewName] = useState("")
   const [newMotiv, setMotiv] = useState("")
   const [newChar, setChar] = useState("")
   const [newLook, setLook] = useState("")
   const [newBackstory, setBackstory] = useState("")
   const [newTraits, setTraits] = useState("")
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(false)
+  const [showPopup, setPopup] = useState(false)
+  const [activeNpc, setActiveNpc] = useState("")
+  const [activeId, setActiveId] = useState("")
+  const [formData, setFormData] = useState(EMPTY_NPC)
 
   useEffect(() => {
-    getDocs(collection(db, 'users', user.uid, 'campaigns', campaign.id, 'npcs'))
-      .then(snapshot => setNpcs(snapshot.docs.map(d => ({ id: d.id, ...d.data() }))));
-  }, [campaign.id]);
+  const unsub = onSnapshot(
+    collection(db, 'users', user.uid, 'campaigns', campaign.id, 'npcs'),
+    (snapshot) => {
+      setNpcs(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
 
-  const handleAdd = async (e) => {
-    e.preventDefault();
-    if (!newName.trim()) return;
-    const ref = await addDoc(collection(db,'users', user.uid, 'campaigns', campaign.id, 'npcs'), {
-      name: newName.trim(),
-      look: newLook(),
-      motivation: newMotiv(),
-      backstory: newBackstory(),
-      traits: newTraits(),
-      createdAt: serverTimestamp(),
-    });
-    setNpcs(prev => [...prev, { id: ref.id, name: newName.trim(),}]);
-    setNewName('');
-    setShowForm(false);
+    //  setFormData
+    //  ({name: activeNpc.name ?? "", 
+    //        look: activeNpc.look ?? "",
+    //        motivation: activeNpc.motivation ?? "",
+    //        backstory: activeNpc.backstory ?? "",
+    //        traits: activeNpc.traits ?? "",
+    //    });
+    }
+  );
+  return unsub; 
+}, [campaign.id]);
+
+    const handleSelect = async(npc) =>{
+        setActiveId(npc.id);
+        setFormData({name: npc.name ?? "", 
+            look: npc.look ?? "",
+            motivation: npc.motivation ?? "",
+            backstory: npc.backstory ?? "",
+            traits: npc.traits ?? "",
+        });
+    };
+
+    const handleDeselect = () =>{
+        setActiveId(null);
+        setActiveNpc(EMPTY_NPC);
+        setFormData({name: "", 
+            look:   "",
+            motivation:  "",
+            backstory:  "",
+            traits:  "",
+        })
+    };
+
+  const handleAdd = async (fields) => {
+    if (!fields.name.trim()) return;
+    const ref = await addDoc(
+      collection(db, 'users', user.uid, 'campaigns', campaign.id, 'npcs'),
+      { ...fields, createdAt: serverTimestamp() }
+    );
+    const newNpc = { id: ref.id, ...fields };
+
+    setActiveId(ref.id)
+ 
   };
 
+  const handleDelete = async(id) =>{
+    await deleteDoc(doc(db,'users', user.uid, 'campaigns', campaign.id, 'npcs', id));
+        setNpcs(prev => [...prev]);
+  };
+  const handleUpdate = async(id, fields) =>{
+    await updateDoc(doc(db,"users", user.uid, "campaigns", campaign.id, "npcs", id), fields);
+        setNpcs(prev => [...prev]);
+  };
+    
   return (
-    <div>
-      <h1>NPC List</h1>
+    <div className="npc-layout">
+      {/* Left: list */}
+      <div className="npc-list-panel">
+        <h1>NPCs</h1>
+ 
+        {npcs.length === 0 && <p className="placeholder-text">No NPCs yet.</p>}
+ 
+        <ul className="list">
+          {npcs.map(npc => (
+            <li
+              key={npc.id}
+              className={`item npc-list-item ${activeId === npc.id ? 'npc-list-item--active' : ""}`}
+              onClick={() => handleSelect(npc)}
+            >
+              <span>{npc.name}</span>
+              <button
+                className="delete-btn"
+                onClick={e => { e.stopPropagation(); handleDelete(npc.id); }}
+                title="Delete"
+              >✕</button>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="npc-detail-panel">
+        <NpcForm
+          key={activeId ?? "new"}
+          activeIdId={activeId}
+          initialData={formData}
+          onCreate={handleAdd}
+          onUpdate={handleUpdate}
+          handleDeselect={handleDeselect}
+        />
+      </div>
+    </div>
+  );
+}
+function NpcForm({activeId, initialData, onCreate,onUpdate,handleDeselect}){
+    const[name, setName] = useState(initialData.name ??"")
+    const[look, setLook] = useState(initialData.look ??"")
+    const[motivation, setMotiv] = useState(initialData.motivation ??"")
+    const[backstory, setBackstory] = useState(initialData.backstory ??"")
+    const[traits, setTraits] = useState(initialData.traits ??"")
+    const[saved, setSaved] = useState(!!activeId)
 
-      {npcs.length === 0 && <p className="placeholder-text">No NPCs added yet.</p>}
+    const isNew = !activeId
+    const markUnsaved = () => {setSaved(false)}
 
-      <ul className="list">
-        {npcs.map(npc => (
-          <li key={npc.id} className="item">{npc.name}</li>
-        ))}
-      </ul>
-
-      {showForm ? (
-        <form onSubmit={handleAdd} className="form">
+    const handleSubmit = () => {
+    const fields = { name, look, motivation, backstory, traits };
+    if (isNew) {
+      onCreate(fields);
+      setSaved(true);
+    } else {
+      onUpdate(fields);
+      setSaved(true);
+    }
+  };
+  return (
+    <div className="npc-detail">
+      <div className="npc-detail-header">
+        <h2 className="npc-detail-title">
+          {isNew ? 'New NPC' : (name || 'Unnamed NPC')}
+        </h2>
+        <div className="npc-detail-actions">
+          {!saved && !isNew && <span className="unsaved">Unsaved changes</span>}
+          <button onClick={handleSubmit}>
+            {isNew ? "Add" : 'Save changes'}
+          </button>
+           <button className="new-npc-btn" onClick={handleDeselect} title="New NPC">+ New</button>
+        </div>
+      </div>
+ 
+      <div className="npc-fields">
+        <label>
+          Name
           <input
-            value={newName}
-            onChange={e => setNewName(e.target.value)}
-            placeholder="Name"
-            autoFocus
-          /><input
-            value={newLook}
-            onChange={e => setLook(e.target.value)}
-            placeholder="Look"
-            autoFocus
-          /><input
-            value={newChar}
-            onChange={e => setChar(e.target.value)}
-            placeholder="Character"
-            autoFocus
-          /><input
-            value={newMotiv}
-            onChange={e => setMotiv(e.target.value)}
-            placeholder="Motivation"
-            autoFocus
-          /><input
-            value={newBackstory}
-            onChange={e => setBackstory(e.target.value)}
-            placeholder="Backstory"
-            autoFocus
-          /><input
-            value={newTraits}
-            onChange={e => setTraits(e.target.value)}
-            placeholder="Traits"
-            autoFocus
+            value={name}
+            onChange={e => { setName(e.target.value); markUnsaved(); }}
+            placeholder="NPC name…"
           />
-          <button type="submit">Confirm</button>
-          <button type="button" onClick={() => { setShowForm(false); setNewName(''); }}>Cancel</button>
-        </form>
-      ) : (
-        <button onClick={() => setShowForm(true)}>+ Add NPC</button>
-      )}
+        </label>
+ 
+        <label className="npc-field-grow">
+          Look
+          <input
+            value={look}
+            onChange={e => { setLook(e.target.value); markUnsaved(); }}
+            placeholder="Physical appearance, clothing…"
+          />
+        </label>
+ 
+        <label className="npc-field-grow">
+          Motivation
+          <input
+            value={motivation}
+            onChange={e => { setMotiv(e.target.value); markUnsaved(); }}
+            placeholder="What drives them…"
+          />
+        </label>
+ 
+        <label className="npc-field-grow">
+          Backstory
+          <textarea
+            value={backstory}
+            onChange={e => { setBackstory(e.target.value); markUnsaved(); }}
+            placeholder="History and background…"
+            rows={4}
+          />
+        </label>
+ 
+        <label className="npc-field-grow">
+          Traits
+          <textarea
+            value={traits}
+            onChange={e => { setTraits(e.target.value); markUnsaved(); }}
+            placeholder="Personality, quirks, mannerisms…"
+            rows={4}
+          />
+        </label>
+      </div>
     </div>
   );
 }
@@ -149,67 +268,152 @@ function WorldSection() {
   );
 }
 
-function ScriptSection({ campaign, user}) {
-  const [text, setText] = useState('');
-  const [saved, setSaved] = useState(true);
-  const [script, setScripts] = useState([]);
-  const [scriptName, setScriptName] = useState("script");
-
-
-
+function ScriptSection({ campaign, user }) {
+  const [paragraphs, setParagraphs] = useState([]);
+  const [collapsed, setCollapsed] = useState({});
  
   useEffect(() => {
-    getDoc(doc(db,'users', user.uid, 'campaigns', campaign.id, 'data'))
+    getDoc(doc(db, 'users', user.uid, 'campaigns', campaign.id, 'data', 'script'))
       .then(snapshot => {
         if (snapshot.exists()) {
-          setText(snapshot.data().text);
+          const scripts = snapshot.scripts();
+          // support old plain-text format
+          if (Array.isArray(scripts.paragraphs)) {
+            setParagraphs(scripts.paragraphs);
+          } else if (scripts.text) {
+            setParagraphs([{ id: '1', title: 'Notes', content: scripts.text }]);
+          }
         }
       });
-  }, [campaign.id]);
-
-    useEffect(() => {
-    getDocs(collection(db, 'users', user.uid, 'campaigns', campaign.id, 'npcs'))
-      .then(snapshot => setNpcs(snapshot.docs.map(d => ({ id: d.id, ...d.data() }))));
-    }, [campaign.id]);
-
+  }, [campaign.id, user.uid]);
  
-  const handleSave = async () => {
-    await setDoc(doc(db,'users', user.uid, 'campaigns', campaign.id, 'data', 'script'), {
-      text,
-      updatedAt: serverTimestamp(),
-    });
-    setSaved(true);
+  const save = async (updated) => {
+    await setDoc(
+      doc(db, 'users', user.uid, 'campaigns', campaign.id, 'scripts', updated.id),
+      { paragraphs: updated, updatedAt: serverTimestamp() }
+    );
   };
-
-//   const handleAdd = async (e) => {
-//   e.preventDefault();
-//   if (!newName.trim()) return;
-//   const ref = await addDoc(collection(db,'users', user.uid, 'campaigns', campaign.id, 'npcs'), {
-//     name: newName.trim(),
-//     createdAt: serverTimestamp(),
-//   });
-//   setNpcs(prev => [...prev, { id: ref.id, name: newName.trim() }]);
-//   setNewName('');
-//   setShowForm(false);
-// };
-
-  const handleAdd = async() =>{
-
-  }
+ 
+  const handleAddParagraph = () => {
+    const newP = { id: crypto.randomUUID(), title: 'New section', content: '' };
+    const updated = [...paragraphs, newP];
+    setParagraphs(updated);
+    save(updated);
+    // expand the new one
+    setCollapsed(prev => ({ ...prev, [newP.id]: false }));
+  };
+ 
+  const handleUpdateTitle = (id, title) => {
+    const updated = paragraphs.map(p => p.id === id ? { ...p, title } : p);
+    setParagraphs(updated);
+  };
+ 
+  const handleUpdateContent = (id, content) => {
+    const updated = paragraphs.map(p => p.id === id ? { ...p, content } : p);
+    setParagraphs(updated);
+  };
+ 
+  const handleSaveParagraph = (id) => {
+    save(paragraphs);
+  };
+ 
+  const handleDelete = (id) => {
+    const updated = paragraphs.filter(p => p.id !== id);
+    setParagraphs(updated);
+    save(updated);
+  };
+ 
+  const toggleCollapse = (id) => {
+    setCollapsed(prev => ({ ...prev, [id]: !prev[id] }));
+  };
  
   return (
-    <div>
-      <h1>Script & Notes</h1>
-      <textarea
-        className="script-textarea"
-        value={text}
-        onChange={e => { setText(e.target.value); setSaved(false); }}
-        placeholder="Write your script and notes here…"
-      />
-      <div className="script-footer">
-        {!saved && <span className="unsaved">Unsaved changes</span>}
-        <button onClick={handleSave}>Save</button>
+    <div className="script-section">
+      <div className="script-header">
+        <h1>Script & Notes</h1>
+        <button onClick={handleAddParagraph}>+ Add section</button>
       </div>
+ 
+      {paragraphs.length === 0 && (
+        <p className="placeholder-text">No sections yet. Click "Add section" to start.</p>
+      )}
+ 
+      <div className="script-paragraphs">
+        {paragraphs.map(p => (
+          <ScriptParagraph
+            key={p.id}
+            paragraph={p}
+            isCollapsed={!!collapsed[p.id]}
+            onToggle={() => toggleCollapse(p.id)}
+            onTitleChange={title => handleUpdateTitle(p.id, title)}
+            onContentChange={content => handleUpdateContent(p.id, content)}
+            onSave={() => handleSaveParagraph(p.id)}
+            onDelete={() => handleDelete(p.id)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+ 
+function ScriptParagraph({ paragraph, isCollapsed, onToggle, onTitleChange, onContentChange, onSave, onDelete }) {
+  const [saved, setSaved] = useState(true);
+  const [editingTitle, setEditingTitle] = useState(false);
+ 
+  const handleContentChange = (e) => {
+    onContentChange(e.target.value);
+    setSaved(false);
+  };
+ 
+  const handleTitleChange = (e) => {
+    onTitleChange(e.target.value);
+    setSaved(false);
+  };
+ 
+  const handleSave = () => {
+    onSave();
+    setSaved(true);
+  };
+ 
+  return (
+    <div className="script-para">
+      <div className="script-para-header">
+        <button className="collapse-btn" onClick={onToggle}>
+          {isCollapsed ? '▶' : '▼'}
+        </button>
+ 
+        {editingTitle ? (
+          <input
+            className="script-title-input"
+            value={paragraph.title}
+            onChange={handleTitleChange}
+            onBlur={() => setEditingTitle(false)}
+            onKeyDown={e => { if (e.key === 'Enter') setEditingTitle(false); }}
+            autoFocus
+          />
+        ) : (
+          <h2 className="script-para-title" onDoubleClick={() => setEditingTitle(true)}>
+            {paragraph.title || 'Untitled'}
+          </h2>
+        )}
+ 
+        <div className="script-para-actions">
+          {!saved && <span className="unsaved">Unsaved</span>}
+          {!saved && <button onClick={handleSave}>Save</button>}
+          <button className="delete-btn" onClick={onDelete} title="Delete section">✕</button>
+        </div>
+      </div>
+ 
+      {!isCollapsed && (
+        <div className="script-para-body">
+          <textarea
+            className="script-para-textarea"
+            value={paragraph.content}
+            onChange={handleContentChange}
+            placeholder="Write here…"
+          />
+        </div>
+      )}
     </div>
   );
 }
