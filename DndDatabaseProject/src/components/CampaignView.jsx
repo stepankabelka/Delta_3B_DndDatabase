@@ -1,6 +1,10 @@
 import { useState, useEffect, Popup } from 'react';
 import { db,} from '../firebase';
 import { Description, Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
+import {Cloudinary} from "@cloudinary/url-gen";
+import {AdvancedImage} from '@cloudinary/react';
+import {fill} from "@cloudinary/url-gen/actions/resize";
+import CloudinaryUploadWidget from './CloudinaryUploadWidget';
 import {
   collection,
   deleteDoc,
@@ -17,7 +21,7 @@ import './CampaignView.css';
 
 const SECTIONS = ['Map', 'NPC', 'World', 'Script'];
 
-export default function CampaignView({ campaign, onBack, user}) {
+export default function CampaignView({ campaign, onBack, user, cld}) {
   const [activeSection, setActiveSection] = useState('Map');
 
   return (
@@ -39,7 +43,7 @@ export default function CampaignView({ campaign, onBack, user}) {
       </aside>
 
       <main className="content">
-        {activeSection === 'Map'    && <MapSection campaign={campaign} user={user}/>}
+        {activeSection === 'Map'    && <MapSection campaign={campaign} user={user} cld={cld}/>}
         {activeSection === 'NPC'    && <NpcSection campaign={campaign} user={user} />}
         {activeSection === 'World'  && <WorldSection campaign={campaign} user={user}/>}
         {activeSection === 'Script' && <ScriptSection campaign={campaign} user={user}/>}
@@ -48,12 +52,42 @@ export default function CampaignView({ campaign, onBack, user}) {
   );
 }
 
-function MapSection() {
+function MapSection({ campain, user, cld}) {
+
+    const cloudName = 'dutkdvsbo';
+    const uploadPreset = 'user_uploads';
+    const [publicId, setPublicId] = useState('');
+
+    const uwConfig = {
+    cloudName,
+    uploadPreset,
+    // Uncomment and modify as needed:
+     cropping: true,
+     showAdvancedOptions: true,
+     sources: ['local', 'url'],
+    // multiple: false,
+    // folder: 'user_images',
+    // tags: ['users', 'profile'],
+    // context: { alt: 'user_uploaded' },
+    // clientAllowedFormats: ['images'],
+     maxImageFileSize: 2000000,
+     maxImageWidth: 2000,
+    // theme: 'purple',
+  };
+    // Instantiate a CloudinaryImage object for the image with the public ID, 'docs/models'.
+  const myImage = cld.image('docs/models'); 
+  myImage.resize(fill().width(600).height(600));
+
+  // Resize to 250 x 250 pixels using the 'fill' crop mode.
+  
+
+  // Render the image in a React component.
+   //     <AdvancedImage cldImg={myImage}/>
   return (
     <div>
-      <h1>Map</h1>
-      <div className="map-placeholder">Map with clickable locations</div>
-    </div>
+        <h1>Map</h1>
+        <CloudinaryUploadWidget uwConfig={uwConfig} setPublicId={setPublicId} />
+      </div>
   );
 }
 
@@ -288,10 +322,14 @@ function ScriptSection({ campaign, user }) {
   }, [campaign.id, user.uid]);
  
   const save = async (updated) => {
-    await setDoc(
+    if(updated)
+    {
+        await setDoc(
       doc(db, 'users', user.uid, 'campaigns', campaign.id, 'scripts', updated.id),
       { paragraphs: updated, updatedAt: serverTimestamp() }
     );
+    }
+    
   };
  
   const handleAddParagraph = () => {

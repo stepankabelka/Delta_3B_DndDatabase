@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@cloudinary/react": "^1.14.4",
+    "@cloudinary/url-gen": "^1.22.0",
     "@headlessui/react": "^2.2.10",
     "@vitejs/plugin-react": "^5.1.1",
     "dotenv": "^17.4.2",
