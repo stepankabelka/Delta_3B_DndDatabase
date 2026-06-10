@@ -2,7 +2,7 @@ import { useState, useEffect, Popup } from 'react';
 import { db,} from '../firebase';
 import { Description, Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import {Cloudinary} from "@cloudinary/url-gen";
-import {AdvancedImage} from '@cloudinary/react';
+import { AdvancedImage, responsive, placeholder } from '@cloudinary/react';
 import {fill} from "@cloudinary/url-gen/actions/resize";
 import CloudinaryUploadWidget from './CloudinaryUploadWidget';
 import {
@@ -18,6 +18,7 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import './CampaignView.css';
+import { text } from '@cloudinary/url-gen/qualifiers/source';
 
 const SECTIONS = ['Map', 'NPC', 'World', 'Script'];
 
@@ -44,15 +45,15 @@ export default function CampaignView({ campaign, onBack, user, cld}) {
 
       <main className="content">
         {activeSection === 'Map'    && <MapSection campaign={campaign} user={user} cld={cld}/>}
-        {activeSection === 'NPC'    && <NpcSection campaign={campaign} user={user} />}
         {activeSection === 'World'  && <WorldSection campaign={campaign} user={user}/>}
+        {activeSection === 'NPC'    && <NpcSection campaign={campaign} user={user} />}
         {activeSection === 'Script' && <ScriptSection campaign={campaign} user={user}/>}
       </main>
     </div>
   );
 }
 
-function MapSection({ campain, user, cld}) {
+function MapSection({ campaign, user, cld}) {
 
     const cloudName = 'dutkdvsbo';
     const uploadPreset = 'user_uploads';
@@ -63,7 +64,6 @@ function MapSection({ campain, user, cld}) {
     uploadPreset,
     // Uncomment and modify as needed:
      cropping: true,
-     showAdvancedOptions: true,
      sources: ['local', 'url'],
     // multiple: false,
     // folder: 'user_images',
@@ -78,15 +78,39 @@ function MapSection({ campain, user, cld}) {
   const myImage = cld.image('docs/models'); 
   myImage.resize(fill().width(600).height(600));
 
-  // Resize to 250 x 250 pixels using the 'fill' crop mode.
-  
+  useEffect(() => {
+    getDoc(doc(db, 'users', user.uid, 'campaigns', campaign.id, 'maps', 'map'))
+      .then(snapshot => {
+        if (snapshot.exists()) {
+          setPublicId(snapshot.data().publicId ?? '');
+        }
+      });
+  }, [campaign.id, user.uid]);
 
-  // Render the image in a React component.
-   //     <AdvancedImage cldImg={myImage}/>
+  const handleSetPublicId = async (id) => {
+    setPublicId(id);
+    await setDoc(
+      doc(db, 'users', user.uid, 'campaigns', campaign.id, 'data', 'map'),
+      { publicId: id, updatedAt: serverTimestamp() }
+    );
+  };
+
   return (
     <div>
         <h1>Map</h1>
         <CloudinaryUploadWidget uwConfig={uwConfig} setPublicId={setPublicId} />
+      {publicId && (
+        <div
+          className="image-preview"
+          style={{ width: '800px', margin: '20px auto' }}
+        >
+          <AdvancedImage
+            style={{ maxWidth: '80%' }}
+            cldImg={cld.image(publicId)}
+            plugins={[responsive(), placeholder()]}
+          />
+        </div>
+      )}
       </div>
   );
 }
@@ -194,7 +218,7 @@ function NpcSection({ campaign, user }) {
       <div className="npc-detail-panel">
         <NpcForm
           key={activeId ?? "new"}
-          activeIdId={activeId}
+          activeId={activeId}
           initialData={formData}
           onCreate={handleAdd}
           onUpdate={handleUpdate}
@@ -292,12 +316,41 @@ function NpcForm({activeId, initialData, onCreate,onUpdate,handleDeselect}){
   );
 }
 
-function WorldSection() {
+function WorldSection({campaign, user}) {
+    const [content, setContent] = useState("");
+
+    useEffect(() => {
+  getDoc(doc(db, 'users', user.uid, 'campaigns', campaign.id, 'worldData', 'main'))
+    .then(snapshot => {
+      if (snapshot.exists()) {
+        setContent(snapshot.data().text ?? '');
+      } else {
+        console.log('no doc found');
+      }
+    })
+    .catch(err => console.error('load failed:', err));
+}, [campaign.id, user.uid]);
+
+    const handleSave = async (c) => {
+  try {
+    await setDoc(
+      doc(db, 'users', user.uid, 'campaigns', campaign.id, 'worldData', 'main'),
+      { text: c, updatedAt: serverTimestamp() }
+    );
+    console.log('saved ok');
+  } catch (err) {
+    console.error('save failed:', err);
+  }
+};
   return (
     <div>
       <h1>World Info</h1>
-      <button>Edit</button>
-      <p className="placeholder-text">No world info yet.</p>
+      <textarea
+       className ="worldScript"
+       value={content}
+       onChange={s =>{setContent(s.target.value);}}
+       ></textarea>
+      <button onClick={() => handleSave(content)}>save</button>
     </div>
   );
 }
@@ -307,15 +360,15 @@ function ScriptSection({ campaign, user }) {
   const [collapsed, setCollapsed] = useState({});
  
   useEffect(() => {
-    getDoc(doc(db, 'users', user.uid, 'campaigns', campaign.id, 'data', 'script'))
+    getDoc(doc(db, 'users', user.uid, 'campaigns', campaign.id, 'scripts', 'main'))
       .then(snapshot => {
         if (snapshot.exists()) {
-          const scripts = snapshot.scripts();
+          const data = snapshot.data();
           // support old plain-text format
-          if (Array.isArray(scripts.paragraphs)) {
-            setParagraphs(scripts.paragraphs);
-          } else if (scripts.text) {
-            setParagraphs([{ id: '1', title: 'Notes', content: scripts.text }]);
+          if (Array.isArray(data.paragraphs)) {
+            setParagraphs(data.paragraphs);
+          } else if (data.text) {s
+            setParagraphs([{ id: '1', title: 'Notes', content: data.text }]);
           }
         }
       });
@@ -325,7 +378,7 @@ function ScriptSection({ campaign, user }) {
     if(updated)
     {
         await setDoc(
-      doc(db, 'users', user.uid, 'campaigns', campaign.id, 'scripts', updated.id),
+      doc(db, 'users', user.uid, 'campaigns', campaign.id, 'scripts', "main"),
       { paragraphs: updated, updatedAt: serverTimestamp() }
     );
     }
