@@ -63,7 +63,7 @@ function MapSection({ campaign, user, cld}) {
     cloudName,
     uploadPreset,
     // Uncomment and modify as needed:
-     cropping: true,
+    //cropping: true,
      sources: ['local', 'url'],
     // multiple: false,
     // folder: 'user_images',
@@ -90,7 +90,7 @@ function MapSection({ campaign, user, cld}) {
   const handleSetPublicId = async (id) => {
     setPublicId(id);
     await setDoc(
-      doc(db, 'users', user.uid, 'campaigns', campaign.id, 'data', 'map'),
+      doc(db, 'users', user.uid, 'campaigns', campaign.id, 'maps', 'map'),
       { publicId: id, updatedAt: serverTimestamp() }
     );
   };
@@ -98,7 +98,7 @@ function MapSection({ campaign, user, cld}) {
   return (
     <div>
         <h1>Map</h1>
-        <CloudinaryUploadWidget uwConfig={uwConfig} setPublicId={setPublicId} />
+        <CloudinaryUploadWidget uwConfig={uwConfig} setPublicId={handleSetPublicId} />
       {publicId && (
         <div
           className="image-preview"
@@ -316,41 +316,54 @@ function NpcForm({activeId, initialData, onCreate,onUpdate,handleDeselect}){
   );
 }
 
-function WorldSection({campaign, user}) {
-    const [content, setContent] = useState("");
+function WorldSection({ campaign, user }) {
+  const [content, setContent] = useState("");
 
-    useEffect(() => {
-  getDoc(doc(db, 'users', user.uid, 'campaigns', campaign.id, 'worldData', 'main'))
-    .then(snapshot => {
-      if (snapshot.exists()) {
-        setContent(snapshot.data().text ?? '');
-      } else {
-        console.log('no doc found');
-      }
-    })
-    .catch(err => console.error('load failed:', err));
-}, [campaign.id, user.uid]);
+  useEffect(() => {
+    if (!user || !campaign?.id) return;
 
-    const handleSave = async (c) => {
-  try {
-    await setDoc(
-      doc(db, 'users', user.uid, 'campaigns', campaign.id, 'worldData', 'main'),
-      { text: c, updatedAt: serverTimestamp() }
-    );
-    console.log('saved ok');
-  } catch (err) {
-    console.error('save failed:', err);
-  }
-};
+    // Use a clean document structure matching your other working sections
+    getDoc(doc(db, 'users', user.uid, 'campaigns', campaign.id, 'worldData', 'main'))
+      .then(snapshot => {
+        if (snapshot.exists()) {
+          setContent(snapshot.data().text ?? '');
+        } else {
+          console.log('No world document found. Ready to create one.');
+        }
+      })
+      .catch(err => console.error('Load world failed:', err));
+  }, [campaign.id, user.uid]);
+
+  const handleSave = async () => {
+    if (!user || !campaign?.id) return;
+    
+    try {
+      // setDoc creates the document if it doesn't exist, or completely overwrites it if it does
+      await setDoc(
+        doc(db, 'users', user.uid, 'campaigns', campaign.id, 'worldData', 'main'),
+        { 
+          text: content, 
+          updatedAt: serverTimestamp() 
+        }
+      );
+      console.log('World data saved successfully!');
+      alert('Saved successfully!'); // Helpful UI feedback to confirm it worked
+    } catch (err) {
+      console.error('Save world failed directly from Firestore:', err);
+    }
+  };
+
   return (
     <div>
       <h1>World Info</h1>
       <textarea
-       className ="worldScript"
-       value={content}
-       onChange={s =>{setContent(s.target.value);}}
-       ></textarea>
-      <button onClick={() => handleSave(content)}>save</button>
+        className="worldScript"
+        style={{ width: '100%', minHeight: '200px', display: 'block', marginBottom: '10px' }} // Quick CSS safety fallback
+        value={content}
+        onChange={e => setContent(e.target.value)} // Fixed convention (e)
+        placeholder="Type your world lore here..."
+      />
+      <button onClick={handleSave}>Save World Info</button>
     </div>
   );
 }
@@ -367,7 +380,7 @@ function ScriptSection({ campaign, user }) {
           // support old plain-text format
           if (Array.isArray(data.paragraphs)) {
             setParagraphs(data.paragraphs);
-          } else if (data.text) {s
+          } else if (data.text) {
             setParagraphs([{ id: '1', title: 'Notes', content: data.text }]);
           }
         }
