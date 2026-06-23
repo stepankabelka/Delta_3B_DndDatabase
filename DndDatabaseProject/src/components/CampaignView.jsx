@@ -17,7 +17,7 @@ import {
   doc,
   updateDoc,
 } from 'firebase/firestore';
-import './CampaignView.css';
+import './style.css';
 import { text } from '@cloudinary/url-gen/qualifiers/source';
 
 const SECTIONS = ['Map', 'NPC', 'World', 'Script'];
