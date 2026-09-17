@@ -1,4 +1,4 @@
-import { useState, useEffect, Popup } from 'react';
+import { useState, useEffect,useRef, Popup } from 'react';
 import { db,} from '../firebase';
 import { Description, Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
 import {Cloudinary} from "@cloudinary/url-gen";
@@ -20,7 +20,7 @@ import {
 import './style.css';
 import { text } from '@cloudinary/url-gen/qualifiers/source';
 
-const SECTIONS = ['Map', 'NPC', 'World', 'Script'];
+const SECTIONS = ['Map', 'World','NPC', 'Script'];
 
 export default function CampaignView({ campaign, onBack, user, cld}) {
   const [activeSection, setActiveSection] = useState('Map');
@@ -320,53 +320,64 @@ function WorldSection({ campaign, user }) {
   const [content, setContent] = useState("");
 
   useEffect(() => {
-    if (!user || !campaign?.id) return;
-
-    // Use a clean document structure matching your other working sections
     getDoc(doc(db, 'users', user.uid, 'campaigns', campaign.id, 'worldData', 'main'))
       .then(snapshot => {
         if (snapshot.exists()) {
           setContent(snapshot.data().text ?? '');
-        } else {
-          console.log('No world document found. Ready to create one.');
         }
       })
-      .catch(err => console.error('Load world failed:', err));
+      .catch(err => console.error('load failed:', err));
   }, [campaign.id, user.uid]);
 
-  const handleSave = async () => {
-    if (!user || !campaign?.id) return;
-    
+  const handleSave = async (c) => {
     try {
-      // setDoc creates the document if it doesn't exist, or completely overwrites it if it does
       await setDoc(
         doc(db, 'users', user.uid, 'campaigns', campaign.id, 'worldData', 'main'),
-        { 
-          text: content, 
-          updatedAt: serverTimestamp() 
-        }
+        { text: c, updatedAt: serverTimestamp() }
       );
-      console.log('World data saved successfully!');
-      alert('Saved successfully!'); // Helpful UI feedback to confirm it worked
     } catch (err) {
-      console.error('Save world failed directly from Firestore:', err);
+      console.error('save failed:', err);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key !== 'Enter') return;
+    const textarea = e.target;
+    const { selectionStart, value } = textarea;
+    const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1;
+    const currentLine = value.slice(lineStart, selectionStart);
+    const bulletMatch = currentLine.match(/^(\s*)([-•])\s/);
+    if (!bulletMatch) return;
+
+    e.preventDefault();
+    const [, indent, bullet] = bulletMatch;
+
+    if (currentLine.trim() === bullet) {
+      const newValue = value.slice(0, lineStart) + value.slice(selectionStart);
+      setContent(newValue);
+      requestAnimationFrame(() => textarea.setSelectionRange(lineStart, lineStart));
+    } else {
+      const insertion = `\n${indent}${bullet} `;
+      const newValue = value.slice(0, selectionStart) + insertion + value.slice(selectionStart);
+      setContent(newValue);
+      const cursor = selectionStart + insertion.length;
+      requestAnimationFrame(() => textarea.setSelectionRange(cursor, cursor));
     }
   };
 
   return (
-    <div>
+    <div className="world-section">
       <h1>World Info</h1>
       <textarea
-        className="worldScript"
-        style={{ width: '100%', minHeight: '200px', display: 'block', marginBottom: '10px' }} // Quick CSS safety fallback
+        className="world-textar"
         value={content}
-        onChange={e => setContent(e.target.value)} // Fixed convention (e)
-        placeholder="Type your world lore here..."
+        onChange={s => setContent(s.target.value)}
       />
-      <button onClick={handleSave}>Save World Info</button>
+      <button onClick={() => handleSave(content)}>save</button>
     </div>
   );
 }
+
 
 function ScriptSection({ campaign, user }) {
   const [paragraphs, setParagraphs] = useState([]);

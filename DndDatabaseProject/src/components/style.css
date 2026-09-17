@@ -450,7 +450,7 @@ button:focus-visible {
 
 /* ── World ── */
 .worldScript {
-  width: 100%;
+  width: 100pt;
   min-height: 420px;
   background: var(--bg-2);
   border: 1px solid var(--border-2);
@@ -460,7 +460,7 @@ button:focus-visible {
   font-size: 0.9rem;
   line-height: 1.7;
   padding: 1rem;
-  resize: vertical;
+  resize: both;
   margin-bottom: 0.75rem;
 }
 .worldScript:focus {
@@ -571,7 +571,7 @@ button:focus-visible {
   color: var(--text);
   font-family: inherit;
   font-size: 0.9rem;
-  resize: vertical;
+  resize: both;
   line-height: 1.7;
   padding: 0;
 }
