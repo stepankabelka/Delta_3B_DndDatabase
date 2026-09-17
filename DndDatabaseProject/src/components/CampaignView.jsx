@@ -367,17 +367,20 @@ function WorldSection({ campaign, user }) {
 
   return (
     <div className="world-section">
-      <h1>World Info</h1>
-      <textarea
-        className="world-textar"
+      <div className="world-toolbar">
+        <h1>World Info</h1>
+        <button onClick={() => handleSave(content)}>Save</button>
+      </div>
+      <textarea 
+        className="world-textarea"
         value={content}
-        onChange={s => setContent(s.target.value)}
+        onChange={e => setContent(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Write world info here…"
       />
-      <button onClick={() => handleSave(content)}>save</button>
     </div>
   );
 }
-
 
 function ScriptSection({ campaign, user }) {
   const [paragraphs, setParagraphs] = useState([]);
