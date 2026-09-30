@@ -357,6 +357,35 @@ button:focus-visible {
 .npc-list-item--active span {
   color: var(--accent-2);
 }
+.npc-group {
+  margin-bottom: 0.6rem;
+}
+
+.npc-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.2rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.npc-group-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #667;
+  flex: 1;
+}
+
+.npc-group-count {
+  font-size: 0.75rem;
+  color: #aaa;
+  background: #f0f0f0;
+  border-radius: 10px;
+  padding: 0.05rem 0.5rem;
+}
 
 .unnamed {
   color: var(--text-3);

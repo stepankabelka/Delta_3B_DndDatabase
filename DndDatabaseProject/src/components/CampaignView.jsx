@@ -53,121 +53,146 @@ export default function CampaignView({ campaign, onBack, user, cld}) {
   );
 }
 
-function MapSection({ campaign, user, cld}) {
+function MapSection({ campaign, user, cld }) {
+  const cloudName = 'dutkdvsbo';
+  const uploadPreset = 'user_uploads';
+  const [publicIds, setPublicIds] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [collapsed, setCollapsed] = useState({});
 
-    const cloudName = 'dutkdvsbo';
-    const uploadPreset = 'user_uploads';
-    const [publicId, setPublicId] = useState('');
-
-    const uwConfig = {
+  const uwConfig = {
     cloudName,
     uploadPreset,
-    // Uncomment and modify as needed:
-    //cropping: true,
-     sources: ['local', 'url'],
-    // multiple: false,
-    // folder: 'user_images',
-    // tags: ['users', 'profile'],
-    // context: { alt: 'user_uploaded' },
-    // clientAllowedFormats: ['images'],
-     maxImageFileSize: 2000000,
-     maxImageWidth: 2000,
-    // theme: 'purple',
+    sources: ['local', 'url'],
+    multiple: true,
+    maxFiles: 10,
+    maxImageFileSize: 2000000,
+    maxImageWidth: 2000,
   };
-    // Instantiate a CloudinaryImage object for the image with the public ID, 'docs/models'.
-  const myImage = cld.image('docs/models'); 
-  myImage.resize(fill().width(600).height(600));
 
+  // Load saved images once
   useEffect(() => {
     getDoc(doc(db, 'users', user.uid, 'campaigns', campaign.id, 'maps', 'map'))
       .then(snapshot => {
         if (snapshot.exists()) {
-          setPublicId(snapshot.data().publicId ?? '');
+          setPublicIds(snapshot.data().publicIds ?? []);
         }
-      });
+      })
+      .catch(err => console.error('Failed to load maps:', err))
+      .finally(() => setLoading(false));
   }, [campaign.id, user.uid]);
 
-  const handleSetPublicId = async (id) => {
-    setPublicId(id);
-    await setDoc(
-      doc(db, 'users', user.uid, 'campaigns', campaign.id, 'maps', 'map'),
-      { publicId: id, updatedAt: serverTimestamp() }
-    );
+  // Save whenever publicIds changes (but not on the initial load)
+  useEffect(() => {
+    if (loading) return; // don't overwrite Firestore with [] before load finishes
+    setDoc(
+  doc(db, 'users', user.uid, 'campaigns', campaign.id, 'maps', 'map'),
+  { publicIds, updatedAt: serverTimestamp() }
+    ).catch(err => console.error('Failed to save maps:', err));
+  }, [publicIds, loading, campaign.id, user.uid]);
+
+  const handleNewUpload = (id) => {
+    setPublicIds(prev => [...prev, id]);
   };
+
+  const handleRemove = (id) => {
+    setPublicIds(prev => prev.filter(pid => pid !== id));
+  };
+
+  const toggleCollapse = (id) => {
+    setCollapsed(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const displayName = (id) => id.split('/').pop();
+
+  if (loading) return <div>Loading…</div>;
 
   return (
     <div>
-        <h1>Map</h1>
-        <CloudinaryUploadWidget uwConfig={uwConfig} setPublicId={handleSetPublicId} />
-      {publicId && (
-        <div
-          className="image-preview"
-          style={{ width: '800px', margin: '20px auto' }}
-        >
-          <AdvancedImage
-            style={{ maxWidth: '80%' }}
-            cldImg={cld.image(publicId)}
-            plugins={[responsive(), placeholder()]}
-          />
-        </div>
-      )}
+      <h1>Map</h1>
+      <CloudinaryUploadWidget uwConfig={uwConfig} setPublicId={handleNewUpload} />
+
+      {publicIds.length === 0 && <p className="placeholder-text">No images yet.</p>}
+
+      <div
+        className="map-gallery"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px',
+          marginTop: '20px',
+          maxHeight: '80vh',
+          overflowY: 'auto',
+          paddingRight: '8px',
+        }}
+      >
+        {publicIds.map(id => (
+          <div key={id} style={{ position: 'relative', width: '100%', maxWidth: '900px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <button onClick={() => toggleCollapse(id)}>
+                {collapsed[id] ? 'Show' : 'Hide'}
+              </button>
+              <button onClick={() => handleRemove(id)} title="Remove">✕</button>
+            </div>
+
+            {collapsed[id] ? (
+              <div
+                style={{
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  padding: '12px',
+                  textAlign: 'center',
+                  color: '#555',
+                }}
+              >
+                {displayName(id)}
+              </div>
+            ) : (
+              <AdvancedImage
+                style={{ width: '100%' }}
+                cldImg={cld.image(id).resize(fill().width(1200).height(1200))}
+                plugins={[responsive(), placeholder()]}
+              />
+            )}
+          </div>
+        ))}
       </div>
+    </div>
   );
 }
-
 function NpcSection({ campaign, user }) {
-  const EMPTY_NPC = { name: "", look: "", motivation: "", backstory: "", traits: "" }
+  const EMPTY_NPC = { name: "", look: "", motivation: "", backstory: "", traits: "", group: "" }
   const [npcs, setNpcs] = useState([])
-  const [newName, setNewName] = useState("")
-  const [newMotiv, setMotiv] = useState("")
-  const [newChar, setChar] = useState("")
-  const [newLook, setLook] = useState("")
-  const [newBackstory, setBackstory] = useState("")
-  const [newTraits, setTraits] = useState("")
-  const [showForm, setShowForm] = useState(false)
-  const [showPopup, setPopup] = useState(false)
-  const [activeNpc, setActiveNpc] = useState("")
   const [activeId, setActiveId] = useState("")
   const [formData, setFormData] = useState(EMPTY_NPC)
+  const [collapsedGroups, setCollapsedGroups] = useState({})
 
   useEffect(() => {
-  const unsub = onSnapshot(
-    collection(db, 'users', user.uid, 'campaigns', campaign.id, 'npcs'),
-    (snapshot) => {
-      setNpcs(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    const unsub = onSnapshot(
+      collection(db, 'users', user.uid, 'campaigns', campaign.id, 'npcs'),
+      (snapshot) => {
+        setNpcs(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+      }
+    );
+    return unsub;
+  }, [campaign.id]);
 
-    //  setFormData
-    //  ({name: activeNpc.name ?? "", 
-    //        look: activeNpc.look ?? "",
-    //        motivation: activeNpc.motivation ?? "",
-    //        backstory: activeNpc.backstory ?? "",
-    //        traits: activeNpc.traits ?? "",
-    //    });
-    }
-  );
-  return unsub; 
-}, [campaign.id]);
+  const handleSelect = async (npc) => {
+    setActiveId(npc.id);
+    setFormData({
+      name: npc.name ?? "",
+      look: npc.look ?? "",
+      motivation: npc.motivation ?? "",
+      backstory: npc.backstory ?? "",
+      traits: npc.traits ?? "",
+      group: npc.group ?? "",
+    });
+  };
 
-    const handleSelect = async(npc) =>{
-        setActiveId(npc.id);
-        setFormData({name: npc.name ?? "", 
-            look: npc.look ?? "",
-            motivation: npc.motivation ?? "",
-            backstory: npc.backstory ?? "",
-            traits: npc.traits ?? "",
-        });
-    };
-
-    const handleDeselect = () =>{
-        setActiveId(null);
-        setActiveNpc(EMPTY_NPC);
-        setFormData({name: "", 
-            look:   "",
-            motivation:  "",
-            backstory:  "",
-            traits:  "",
-        })
-    };
+  const handleDeselect = () => {
+    setActiveId(null);
+    setFormData(EMPTY_NPC);
+  };
 
   const handleAdd = async (fields) => {
     if (!fields.name.trim()) return;
@@ -175,51 +200,81 @@ function NpcSection({ campaign, user }) {
       collection(db, 'users', user.uid, 'campaigns', campaign.id, 'npcs'),
       { ...fields, createdAt: serverTimestamp() }
     );
-    const newNpc = { id: ref.id, ...fields };
-
-    setActiveId(ref.id)
- 
+    setActiveId(ref.id);
   };
 
-  const handleDelete = async(id) =>{
-    await deleteDoc(doc(db,'users', user.uid, 'campaigns', campaign.id, 'npcs', id));
-        setNpcs(prev => [...prev]);
+  const handleDelete = async (id) => {
+    await deleteDoc(doc(db, 'users', user.uid, 'campaigns', campaign.id, 'npcs', id));
   };
-  const handleUpdate = async(id, fields) =>{
-    await updateDoc(doc(db,"users", user.uid, "campaigns", campaign.id, "npcs", id), fields);
-        setNpcs(prev => [...prev]);
+
+  const handleUpdate = async (id, fields) => {
+    await updateDoc(doc(db, "users", user.uid, "campaigns", campaign.id, "npcs", id), fields);
   };
-    
+
+  const toggleGroup = (g) => {
+    setCollapsedGroups(prev => ({ ...prev, [g]: !prev[g] }));
+  };
+
+  const UNGROUPED = 'Ungrouped';
+  const grouped = npcs.reduce((acc, npc) => {
+    const g = npc.group?.trim() || UNGROUPED;
+    if (!acc[g]) acc[g] = [];
+    acc[g].push(npc);
+    return acc;
+  }, {});
+  const groupNames = Object.keys(grouped).sort((a, b) => {
+    if (a === UNGROUPED) return 1;
+    if (b === UNGROUPED) return -1;
+    return a.localeCompare(b);
+  });
+  const existingGroups = groupNames.filter(g => g !== UNGROUPED);
+
   return (
     <div className="npc-layout">
-      {/* Left: list */}
       <div className="npc-list-panel">
-        <h1>NPCs</h1>
- 
+        <div className="npc-list-header">
+          <h1>NPCs</h1>
+        </div>
+
         {npcs.length === 0 && <p className="placeholder-text">No NPCs yet.</p>}
- 
-        <ul className="list">
-          {npcs.map(npc => (
-            <li
-              key={npc.id}
-              className={`item npc-list-item ${activeId === npc.id ? 'npc-list-item--active' : ""}`}
-              onClick={() => handleSelect(npc)}
-            >
-              <span>{npc.name}</span>
-              <button
-                className="delete-btn"
-                onClick={e => { e.stopPropagation(); handleDelete(npc.id); }}
-                title="Delete"
-              >✕</button>
-            </li>
-          ))}
-        </ul>
+
+        {groupNames.map(g => (
+          <div className="npc-group" key={g}>
+            <div className="npc-group-header" onClick={() => toggleGroup(g)}>
+              <button className="collapse-btn" tabIndex={-1}>
+                {collapsedGroups[g] ? '▶' : '▼'}
+              </button>
+              <span className="npc-group-name">{g}</span>
+              <span className="npc-group-count">{grouped[g].length}</span>
+            </div>
+
+            {!collapsedGroups[g] && (
+              <ul className="list">
+                {grouped[g].map(npc => (
+                  <li
+                    key={npc.id}
+                    className={`item npc-list-item ${activeId === npc.id ? 'npc-list-item--active' : ""}`}
+                    onClick={() => handleSelect(npc)}
+                  >
+                    <span className={npc.name ? "" : "unnamed"}>{npc.name || "Unnamed"}</span>
+                    <button
+                      className="delete-btn"
+                      onClick={e => { e.stopPropagation(); handleDelete(npc.id); }}
+                      title="Delete"
+                    >✕</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
       </div>
       <div className="npc-detail-panel">
         <NpcForm
           key={activeId ?? "new"}
           activeId={activeId}
           initialData={formData}
+          existingGroups={existingGroups}
           onCreate={handleAdd}
           onUpdate={handleUpdate}
           handleDeselect={handleDeselect}
@@ -228,24 +283,25 @@ function NpcSection({ campaign, user }) {
     </div>
   );
 }
-function NpcForm({activeId, initialData, onCreate,onUpdate,handleDeselect}){
-    const[name, setName] = useState(initialData.name ??"")
-    const[look, setLook] = useState(initialData.look ??"")
-    const[motivation, setMotiv] = useState(initialData.motivation ??"")
-    const[backstory, setBackstory] = useState(initialData.backstory ??"")
-    const[traits, setTraits] = useState(initialData.traits ??"")
-    const[saved, setSaved] = useState(!!activeId)
+function NpcForm({ activeId, initialData, existingGroups, onCreate, onUpdate, handleDeselect }) {
+  const [name, setName] = useState(initialData.name ?? "")
+  const [look, setLook] = useState(initialData.look ?? "")
+  const [motivation, setMotiv] = useState(initialData.motivation ?? "")
+  const [backstory, setBackstory] = useState(initialData.backstory ?? "")
+  const [traits, setTraits] = useState(initialData.traits ?? "")
+  const [group, setGroup] = useState(initialData.group ?? "")
+  const [saved, setSaved] = useState(!!activeId)
 
-    const isNew = !activeId
-    const markUnsaved = () => {setSaved(false)}
+  const isNew = !activeId
+  const markUnsaved = () => { setSaved(false) }
 
-    const handleSubmit = () => {
-    const fields = { name, look, motivation, backstory, traits };
+  const handleSubmit = () => {
+    const fields = { name, look, motivation, backstory, traits, group: group.trim() };
     if (isNew) {
       onCreate(fields);
       setSaved(true);
     } else {
-      onUpdate(fields);
+      onUpdate(activeId, fields);
       setSaved(true);
     }
   };
@@ -260,10 +316,10 @@ function NpcForm({activeId, initialData, onCreate,onUpdate,handleDeselect}){
           <button onClick={handleSubmit}>
             {isNew ? "Add" : 'Save changes'}
           </button>
-           <button className="new-npc-btn" onClick={handleDeselect} title="New NPC">+ New</button>
+          <button className="new-npc-btn" onClick={handleDeselect} title="New NPC">+ New</button>
         </div>
       </div>
- 
+
       <div className="npc-fields">
         <label>
           Name
@@ -273,7 +329,20 @@ function NpcForm({activeId, initialData, onCreate,onUpdate,handleDeselect}){
             placeholder="NPC name…"
           />
         </label>
- 
+
+        <label>
+          Group
+          <input
+            value={group}
+            onChange={e => { setGroup(e.target.value.toLowerCase()); markUnsaved(); }}
+            placeholder="e.g. Party allies, Villains, Merchants…"
+            list="npc-group-options"
+          />
+          <datalist id="npc-group-options">
+            {existingGroups.map(g => <option key={g} value={g} />)}
+          </datalist>
+        </label>
+
         <label className="npc-field-grow">
           Look
           <input
@@ -282,7 +351,7 @@ function NpcForm({activeId, initialData, onCreate,onUpdate,handleDeselect}){
             placeholder="Physical appearance, clothing…"
           />
         </label>
- 
+
         <label className="npc-field-grow">
           Motivation
           <input
@@ -291,7 +360,7 @@ function NpcForm({activeId, initialData, onCreate,onUpdate,handleDeselect}){
             placeholder="What drives them…"
           />
         </label>
- 
+
         <label className="npc-field-grow">
           Backstory
           <textarea
@@ -301,7 +370,7 @@ function NpcForm({activeId, initialData, onCreate,onUpdate,handleDeselect}){
             rows={4}
           />
         </label>
- 
+
         <label className="npc-field-grow">
           Traits
           <textarea
