@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "795566622579",
+    "project_id": "dnddatabas",
+    "storage_bucket": "dnddatabas.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:795566622579:android:b52e768ee1b3d70527e706",
+        "android_client_info": {
+          "package_name": "com.kabelkastepansteam.dnddatabase"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "795566622579-6nfmqf19f807pombkbffjufsbjl251ig.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCSZwcmM5cW2mo_abZQj-s6j25E1IJtdq4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "795566622579-6nfmqf19f807pombkbffjufsbjl251ig.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

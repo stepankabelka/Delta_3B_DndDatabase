@@ -11,6 +11,7 @@
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -25,6 +26,16 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "expo-dev-client",
+      "react-native-nitro-google-signin",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true
+          }
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",
@@ -34,7 +45,8 @@
           "imageWidth": 76
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -42,10 +54,11 @@
     },
     "extra": {
       "router": {},
+
       "eas": {
-        "projectId": "4735e205-11e2-46da-8c72-1837a9a17d8f"
+        "projectId": "2952e50a-a1ec-41cb-ba94-3ec06149922c"
       }
     },
-    "owner": "kabelkastepans-team"
+    "owner": "kabelkastepan"
   }
 }
